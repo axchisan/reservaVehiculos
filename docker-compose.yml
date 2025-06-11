@@ -1,0 +1,163 @@
+
+
+services:
+  user_service:
+    build: ./user_service
+    ports:
+      - "5001:5001"
+    environment:
+      - MYSQL_HOST=user_db
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=
+      - MYSQL_DB=users_db
+    depends_on:
+      user_db:
+        condition: service_healthy
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+  user_db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_DATABASE=users_db
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+    volumes:
+      - user_data:/var/lib/mysql
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  vehicle_service:
+    build: ./vehicle_service
+    ports:
+      - "5002:5002"
+    environment:
+      - MYSQL_HOST=vehicle_db
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=
+      - MYSQL_DB=vehicles_db
+    depends_on:
+      vehicle_db:
+        condition: service_healthy
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+  vehicle_db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_DATABASE=vehicles_db
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+    volumes:
+      - vehicle_data:/var/lib/mysql
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  reservation_service:
+    build: ./reservation_service
+    ports:
+      - "5003:5003"
+    environment:
+      - MYSQL_HOST=reservation_db
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=
+      - MYSQL_DB=reservations_db
+    depends_on:
+      reservation_db:
+        condition: service_healthy
+      user_service:
+        condition: service_started
+      vehicle_service:
+        condition: service_started
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+  reservation_db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_DATABASE=reservations_db
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+    volumes:
+      - reservation_data:/var/lib/mysql
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  payment_service:
+    build: ./payment_service
+    ports:
+      - "5004:5004"
+    environment:
+      - MYSQL_HOST=payment_db
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=
+      - MYSQL_DB=payments_db
+    depends_on:
+      payment_db:
+        condition: service_healthy
+      reservation_service:
+        condition: service_started
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+  payment_db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_DATABASE=payments_db
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+    volumes:
+      - payment_data:/var/lib/mysql
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5000:5000"
+    depends_on:
+      - user_service
+      - vehicle_service
+      - reservation_service
+      - payment_service
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+volumes:
+  user_data:
+  vehicle_data:
+  reservation_data:
+  payment_data:
